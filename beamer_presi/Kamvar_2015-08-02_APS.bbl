@@ -1,0 +1,285 @@
+% $ biblatex auxiliary file $
+% $ biblatex version 1.7 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\entry{bruvo2004simple}{article}{}
+  \name{author}{4}{}{%
+    {{}%
+     {Bruvo}{B.}%
+     {Ru{\v{z}}ica}{R.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Michiels}{M.}%
+     {Nicolaas~K}{N.~K.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {D’Souza}{D.}%
+     {Thomas~G}{T.~G.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Schulenburg}{S.}%
+     {Hinrich}{H.}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {Wiley Online Library}%
+  }
+  \strng{namehash}{BR+1}
+  \strng{fullhash}{BRMNKDTGSH1}
+  \field{labelyear}{2004}
+  \field{sortinit}{B}
+  \field{number}{7}
+  \field{pages}{2101\bibrangedash 2106}
+  \field{title}{A simple method for the calculation of microsatellite genotype
+  distances irrespective of ploidy level}
+  \field{volume}{13}
+  \field{journaltitle}{Molecular Ecology}
+  \field{year}{2004}
+\endentry
+
+\entry{goss2009population}{article}{}
+  \name{author}{5}{}{%
+    {{}%
+     {Goss}{G.}%
+     {Erica~M}{E.~M.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Larsen}{L.}%
+     {Meg}{M.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Chastagner}{C.}%
+     {Gary~A}{G.~A.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Givens}{G.}%
+     {Donald~R}{D.~R.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Gr{\"u}nwald}{G.}%
+     {Niklaus~J}{N.~J.}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {Public Library of Science}%
+  }
+  \strng{namehash}{GEM+1}
+  \strng{fullhash}{GEMLMCGAGDRGNJ1}
+  \field{labelyear}{2009}
+  \field{sortinit}{G}
+  \field{number}{9}
+  \field{pages}{e1000583}
+  \field{title}{Population genetic analysis infers migration pathways of
+  {\textit{Phytophthora ramorum}} in {US} nurseries}
+  \field{volume}{5}
+  \field{journaltitle}{PLoS pathogens}
+  \field{year}{2009}
+\endentry
+
+\entry{grunwald2011evolution}{article}{}
+  \name{author}{2}{}{%
+    {{}%
+     {Gr{\"u}nwald}{G.}%
+     {Niklaus~J}{N.~J.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Goss}{G.}%
+     {Erica~M}{E.~M.}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {Annual Reviews}%
+  }
+  \strng{namehash}{GNJGEM1}
+  \strng{fullhash}{GNJGEM1}
+  \field{labelyear}{2011}
+  \field{sortinit}{G}
+  \field{pages}{249\bibrangedash 267}
+  \field{title}{Evolution and population genetics of exotic and re-emerging
+  pathogens: novel tools and approaches}
+  \field{volume}{49}
+  \field{journaltitle}{Annual review of phytopathology}
+  \field{year}{2011}
+\endentry
+
+\entry{hansen2008epidemiology}{article}{}
+  \name{author}{8}{}{%
+    {{}%
+     {Hansen}{H.}%
+     {EM}{E.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Kanaskie}{K.}%
+     {A}{A}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Prospero}{P.}%
+     {S}{S}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {McWilliams}{M.}%
+     {M}{M}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Goheen}{G.}%
+     {EM}{E.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Osterbauer}{O.}%
+     {N}{N}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Reeser}{R.}%
+     {P}{P}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Sutton}{S.}%
+     {W}{W}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {NRC Research Press}%
+  }
+  \strng{namehash}{HE+1}
+  \strng{fullhash}{HEKAPSMMGEONRPSW1}
+  \field{labelyear}{2008}
+  \field{sortinit}{H}
+  \field{number}{5}
+  \field{pages}{1133\bibrangedash 1143}
+  \field{title}{{Epidemiology of Phytophthora ramorum in Oregon tanoak
+  forests}}
+  \field{volume}{38}
+  \field{journaltitle}{Canadian Journal of Forest Research}
+  \field{year}{2008}
+\endentry
+
+\entry{jombart2010discriminant}{article}{}
+  \name{author}{3}{}{%
+    {{}%
+     {Jombart}{J.}%
+     {Thibaut}{T.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Devillard}{D.}%
+     {S{\'e}bastien}{S.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Balloux}{B.}%
+     {Fran{\c{c}}ois}{F.}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {BioMed Central Ltd}%
+  }
+  \strng{namehash}{JTDSBF1}
+  \strng{fullhash}{JTDSBF1}
+  \field{labelyear}{2010}
+  \field{sortinit}{J}
+  \field{number}{1}
+  \field{pages}{94}
+  \field{title}{Discriminant analysis of principal components: a new method for
+  the analysis of genetically structured populations}
+  \field{volume}{11}
+  \field{journaltitle}{BMC genetics}
+  \field{year}{2010}
+\endentry
+
+\entry{nei1973analysis}{article}{}
+  \name{author}{1}{}{%
+    {{}%
+     {Nei}{N.}%
+     {Masatoshi}{M.}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {National Acad Sciences}%
+  }
+  \strng{namehash}{NM1}
+  \strng{fullhash}{NM1}
+  \field{labelyear}{1973}
+  \field{sortinit}{N}
+  \field{number}{12}
+  \field{pages}{3321\bibrangedash 3323}
+  \field{title}{Analysis of gene diversity in subdivided populations}
+  \field{volume}{70}
+  \field{journaltitle}{Proceedings of the National Academy of Sciences}
+  \field{year}{1973}
+\endentry
+
+\entry{peterson2015temporal}{article}{}
+  \name{author}{3}{}{%
+    {{}%
+     {Peterson}{P.}%
+     {Ebba}{E.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Hansen}{H.}%
+     {Everett}{E.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Kanaskie}{K.}%
+     {Alan}{A.}%
+     {}{}%
+     {}{}}%
+  }
+  \list{publisher}{1}{%
+    {Am Phytopath Society}%
+  }
+  \strng{namehash}{PEHEKA1}
+  \strng{fullhash}{PEHEKA1}
+  \field{labelyear}{2015}
+  \field{sortinit}{P}
+  \verb{doi}
+  \verb 10.1094/PHYTO-12-14-0348-FI
+  \endverb
+  \field{number}{7}
+  \field{pages}{973\bibrangedash 946}
+  \field{title}{{Temporal epidemiology of sudden oak death in Oregon}}
+  \field{volume}{105}
+  \field{journaltitle}{Phytopathology}
+  \field{year}{2015}
+\endentry
+
+\lossort
+\endlossort
+
+\endinput

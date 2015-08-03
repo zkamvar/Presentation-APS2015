@@ -1,0 +1,6 @@
+.Rproj.user
+.Rhistory
+.RData
+beamer_presi/*log
+beamer_presi/*gz
+beamer_presi/cache/*

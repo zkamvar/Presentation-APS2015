@@ -1,0 +1,812 @@
+% this is a simplified version of
+% https://github.com/yihui/knitr/blob/master/inst/examples/knitr-beamer.Rnw
+%
+% Update 2015-07-22
+% This is no longer simple. The above statement is a lie.
+% \documentclass[handout]{beamer}
+\documentclass{beamer}
+\mode<presentation>
+{
+  \usetheme{default}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{dove}    % or try albatross, beaver, crane, ...
+  \usefonttheme{default}  % or try serif, structurebold, ...
+
+  % Setting the empty braces turns off the navigation symbols
+  \setbeamertemplate{navigation symbols}{}
+
+  % I believe these two lines make it so the slides are counted at the bottom.
+  \setbeamertemplate{caption}[numbered]
+  \setbeamertemplate{footline}[frame number]
+
+  % These have no purpose or place in this presentation.
+  \definecolor{links}{HTML}{2A1B81}
+  \hypersetup{colorlinks,linkcolor=,urlcolor=links}
+}
+
+% Used for bibliography at the end.
+\usepackage{subfig}
+\usepackage{appendixnumberbeamer}
+\usepackage[backend=bibtex, style=authoryear-comp]{biblatex}
+\addbibresource{citations.bib}
+
+% Shaded text box color. This defines beige or tan
+% http://www.slideshare.net/linjaaho/how-to-make-boxed-text-with-latex
+\usepackage{framed, color}
+\definecolor{shadecolor}{HTML}{d2b48c}
+
+% This is the color for the "QUESTIONS" header
+\definecolor{mygreen}{HTML}{558046}
+
+\usepackage[absolute,overlay]{textpos}
+
+% Package for overlaying images and drawing arrows, circles, etc.
+% http://tex.stackexchange.com/a/34928/77699
+\usepackage{tikz}
+
+% This bit gives attribution to photos.
+% http://tex.stackexchange.com/a/48485/77699
+\setbeamercolor{framesource}{fg=white}
+\setbeamerfont{framesource}{size=\footnotesize}
+\newcommand{\source}[2]{\begin{textblock*}{4cm}(8.7cm,8.6cm)
+    \begin{beamercolorbox}[ht=0.5cm,right]{framesource}
+        \usebeamerfont{framesource}\usebeamercolor[#2]{framesource}{#1}
+    \end{beamercolorbox}
+\end{textblock*}}
+
+% A whole bunch of stuff for citations so that they would end up in a
+% bibliography.
+\newcommand{\mycitep}[1]{\scriptsize{\textcolor{gray}{(\citeauthor{#1}, \citeyear{#1})}}}
+\newcommand{\mycite}[1]{\scriptsize{\textcolor{gray}{\citeauthor{#1}, \citeyear{#1}}}}
+\newcommand{\foocite}[1]{\footnote{\scriptsize{\textcolor{gray}{\citeauthor{#1}, \citeyear{#1}}}}}
+% I really have no clue why this line is here.
+\newcommand{\btVFill}{\vskip0pt plus 1filll}
+\renewcommand*{\bibfont}{\footnotesize}
+
+% Setup Chunks
+<<setup, include=FALSE, cache = TRUE>>=
+library(knitr)
+opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE, warnings = FALSE,
+				out.height = '0.95\\paperheight', fig.width = 7, fig.height = 5)
+@
+
+<<plotsetup, cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE, results = "hide">>=
+library(devtools)
+library(dplyr)
+library(ggmap)
+library(rgdal)
+library(cowplot)
+data("pop_data", package = "PramCurry")
+plotlist <- list()
+years    <- unique(pop_data$YEAR)
+analdir  <- "~/Documents/Grunwald/ramorum_analysis_public"
+get_location <- function(LON, LAT){
+	return(c(lon = mean(range(LON, na.rm = TRUE)),
+			 lat = mean(range(LAT, na.rm = TRUE))))
+}
+
+get_bb <- function(LON, LAT){
+	long <- range(LON, na.rm = TRUE)
+	lat  <- range(LAT, na.rm = TRUE)
+	return(c(left = long[1], bottom = lat[1], right = long[2], top = lat[2]))
+}
+# Base map
+# brookings <- get_stamenmap(get_bb(pop_data$LON, pop_data$LAT),
+#                      maptype = "terrain",
+#                      zoom = 8)
+
+brookings <- get_googlemap(get_location(pop_data$LON, pop_data$LAT),
+						   # color = "bw",
+						   maptype = "hybrid",
+						   scale = 2,
+						   zoom = 10,
+						   filename = "bigmap")
+
+theline <- data.frame(list(alat = 42.013522, alon = -124.408457,
+						   blat = 42.013522, blon = -124.31061))
+
+read_and_fortify <- function(path, shape){
+	path <- path.expand(path)
+	x <- readOGR(path, shape)
+	x <- spTransform(x, CRS("+proj=longlat +datum=WGS84"))
+	x <- fortify(x)
+	return(x)
+}
+
+shapes <- paste(analdir, "shapefiles", sep = "/")
+ZONE1  <- read_and_fortify(shapes, "GEN_ZONE_1")
+
+ZONE2 <- read_and_fortify(shapes, "GEN_ZONE_2")
+TREES <- spTransform(readOGR(path.expand(shapes), "SOD_POS_2001_2014_20141002"),
+					 CRS("+proj=longlat +datum=WGS84"))@data[-5]
+OREGON <- read_and_fortify(shapes, "states")
+OREGON <- filter(OREGON, id == 11)
+
+ZONE2$id         <- as.factor(ZONE2$id)
+levels(ZONE2$id) <- c("HunterCr", "PistolR", "PistolRSF", "NFChetHigh",
+					  "JHallCr", "Coast", "ChetcoMain", "Winchuck")
+
+my_coord_map <- function(x){
+	heybb <- attr(x, "bb")
+	return(coord_map(projection = "mercator",
+					 xlim = c(heybb$ll.lon, heybb$ur.lon),
+					 ylim = c(heybb$ll.lat, heybb$ur.lat))
+	)
+}
+
+get_coord_map <- function(long, lat){
+	return(coord_map(projection = "mercator",
+					 xlim = range(long),
+					 ylim = range(lat))
+	)
+}
+curr_co_bb <- coord_map(projection = "mercator",
+						xlim = range(ZONE2$long),
+						ylim = range(ZONE2$lat)
+)
+
+add_points <- function(df, color = "yellow", size = 5, alpha = 0.2, pch = 3){
+	aesthetics <- aes(x = LONG, y = LAT)
+	return(geom_point(aesthetics, alpha = alpha, size = size, data = df, pch = pch,
+										color = color))
+}
+
+ORmap  <- get_googlemap(get_location(OREGON$long, OREGON$lat), zoom = 4,
+												maptype = "hybrid", scale = 2)
+ORlay  <- ggplot(aes(x = long, y = lat), data = OREGON)
+ORgg   <- ggmap(ORmap, base_layer = ORlay, maprange = TRUE, "device")
+ORbb   <- get_coord_map(OREGON$long, OREGON$lat)
+curr_co_poly.df <- data.frame(x = rep(curr_co_bb$limits$x, each = 2),
+															y = rep(curr_co_bb$limits$y, each = 2)[c(3, 1:2, 4)])
+ORinset <- ORgg +
+	geom_polygon(aes(x = long, y = lat),
+							 data = OREGON, alpha = 0.5,
+							 fill = "white", color = "black") +
+	geom_point(aes(x = lon, y = lat),
+						 data = data.frame(as.list(get_location(pop_data$LON, pop_data$LAT))),
+						 size = 10, color = "yellow", alpha = 0.5) +
+	geom_polygon(aes(x = x, y = y),
+							 data = curr_co_poly.df,
+							 fill = "red",
+							 color = "red")
+# ORinset
+# ggsave("~/Documents/Grunwald/ramorum_presentation/ORinset.png", dpi = 300)
+alldat <- ggplot(aes(x = LON, y = LAT), data = pop_data)
+brook  <- ggmap(brookings, extent = "device", maprange = TRUE, base_layer = alldat)
+
+library('dplyr')
+
+labs <- ZONE2 %>% group_by(id) %>% summarize(LON = mean(long), LAT = mean(lat))
+labs[labs$id == "Coast", "LON"] <- -124.345
+labs[labs$id == "JHallCr", "LON"] <- -124.245
+labs[labs$id == "HunterCr", "LON"] <- -124.350
+labs[labs$id == "ChetcoMain", "LAT"] <- 42.125
+labs[labs$id == "NFChetHigh", "LAT"] <- 42.18
+
+labeled_plot <- brook + geom_polygon(aes(x = long, y = lat, group = id), data = ZONE2,
+										 alpha = 0.2, size = 1, color = "gold", fill = "black") +
+	annotate("text", x = labs$LON, y = labs$LAT, label = labs$id, color = "white",
+						family = "Helvetica", font = 2,) +
+	get_coord_map(ZONE2$long, ZONE2$lat) +
+	geom_segment(aes(x = alon, xend = blon, y = alat + 0.03, yend = blat + 0.03),
+							 data = theline, color = "grey90", size = 2) +
+	geom_text(aes(x = alon , y = alat + 0.03, label = "5mi"), fontface = "bold",
+						data = theline, color = "grey90", family = "Helvetica", vjust = -1,
+						hjust = 0)
+# labeled_plot
+# ggsave("~/Documents/Grunwald/ramorum_presentation/county_map.png", dpi = 300)
+
+psize   <- 5
+inZones <- ZONE2
+for (i in 1:length(years)){
+	yearange  <- seq(i)
+	myTrees   <- filter(TREES, YEAR %in% years[i])
+	oldTrees  <- filter(TREES, YEAR %in% years[yearange[-i]])
+	plotlist[[i]] <- labeled_plot +
+		add_points(oldTrees, size = psize, color = "chocolate", alpha = 0.5) +
+		add_points(myTrees, size = psize, color = "red", alpha = 0.5, pch = 8) +
+		get_coord_map(inZones$long, inZones$lat) +
+		ggtitle(years[i])
+}
+names(plotlist) <- years
+# 551 x 407
+# do.call("plot_grid", c(plotlist[c("2001", "2005")]))
+# ggsave("~/Documents/Grunwald/ramorum_presentation/2001_2005.png", dpi = 300)
+# do.call("plot_grid", c(plotlist[c("2011", "2014")]))
+# ggsave("~/Documents/Grunwald/ramorum_presentation/2011_2014.png", dpi = 300)
+# do.call("plot_grid", c(plotlist))
+# labeled_plot +
+# 	add_points(TREES, size = 5, color = "chocolate", alpha = 0.4) +
+# 	geom_point(aes(x = LON, y = LAT), color = "white", size = 5, alpha = 0.5, data = pop_data)
+# ggsave("~/Documents/Grunwald/ramorum_presentation/sampled.png", dpi = 300)
+# invisible(lapply(plotlist, print))
+library('poppr')
+data(Pram)
+PrMS39 <- genind2df(popsub(Pram, blacklist = c("Nursery_CA", "Nursery_OR")), sep = "/")$PrMS39A1
+locdf <- data.frame(PrMS39 = factor(PrMS39, unique(PrMS39)), as.data.frame(other(Pram)$xy))
+# labeled_plot +
+# 	geom_point(aes(x = LON, y = LAT, color = PrMS39), size = 5, alpha = 0.5) +
+# 	scale_color_brewer(type = "qual", palette = "Set1")
+# ggsave("~/Documents/Grunwald/ramorum_presentation/PrMS39.png", dpi = 300)
+sink("session_information.txt")
+devtools::session_info()
+@
+
+
+\begin{document}
+
+\title{Evidence for at least two introductions\\ of the sudden oak death pathogen\\ into Oregon forests}
+
+\author{\textbf{ZN Kamvar}, MM Larsen, AM Kanaskie, \\
+EM Hansen, and NJ Gr{\"u}nwald}
+
+\date{APS Annual Meeting, Pasadena, CA\\August 02, 2015}
+\maketitle
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+% \begin{frame}
+% 	\frametitle{Outline}
+% 	\centering
+% 	\LARGE
+% 	\tableofcontents
+% \end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+% Removing the blank line as a header.
+% http://tex.stackexchange.com/a/33288/77699
+\setbeamertemplate{headline}{}
+
+% Setting a custom background image
+% http://tex.stackexchange.com/a/78470/77699
+\setbeamertemplate{background}
+{\includegraphics[width=\paperwidth,height=\paperheight]{../OR_epidemic.png}}
+\source{Mike McWilliams, ODF}{white}
+
+
+\section{What is Sudden Oak Death?}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}
+	\begin{center}
+		\begin{shaded}
+		 	\Large{\bf \sc Background}\\
+		 	\Large{\bf What is Sudden Oak Death?}
+	 	\end{shaded}
+	\end{center}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+% Resetting the default background and header
+\setbeamertemplate{background}[default]
+\setbeamertemplate{headline}[default]
+
+% Setting the caption to be tiny again
+\setbeamerfont{framesource}{size=\tiny}
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}
+\frametitle{\em Phytophthora ramorum}
+\begin{columns}[T]
+	\begin{column}{0.4\textwidth}
+		\begin{itemize}
+			\large
+			\item Non-native
+			\item $>100$ hosts
+			\item Introduced into\\ CA Bay Area\\ circa mid 1990’s
+			\item 4 Clonal lineages
+			\begin{itemize}
+				\item \textbf{NA1}, NA2
+				\item EU1, EU2
+			\end{itemize}
+			\item \textbf{Spread to Oregon\\ before 2001} \\ \mycitep{hansen2008epidemiology}
+		\end{itemize}
+	\end{column}
+	\begin{column}{0.6\textwidth}
+		\centering
+		\includegraphics[height=0.75\paperheight,keepaspectratio]{../SuddenOakDeath05_Jennifer_Parke.jpg}
+		\source{Photo: Jennifer Parke, OSU}{gray}
+	\end{column}
+\end{columns}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+% Setting attribution size larger for background slide
+\setbeamerfont{framesource}{size=\footnotesize}
+\setbeamertemplate{background}
+{\includegraphics[width=\paperwidth,height=\paperheight]{../OR_epidemic.png}}
+\source{Mike McWilliams, ODF}{white}
+
+\section{Curry County Epidemic 2001 -- Present}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[t]
+	\begin{center}
+		\begin{shaded}
+	  		\Large{\bf Curry County Epidemic\\2001 -- Present}
+	  	\end{shaded}
+ 	\end{center}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+\setbeamertemplate{background}[default]
+\setbeamertemplate{headline}[default]
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+
+% fig.show = "hide" is important here because knitr does not handle rescaling
+% plots very well. It will squish them. Setting keepaspectratio prevents
+% squishing.
+<<insetplot, fig.show = "hide", cache = TRUE, echo = FALSE, fig.width = 5, fig.height = 5>>=
+ORinset
+@
+	\centering
+	\includegraphics[keepaspectratio, height=\paperheight]{figure/insetplot-1.pdf}
+	\vfill
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}
+
+<<brookings, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/2, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+labeled_plot
+@
+
+% Overlayed picture
+% http://tex.stackexchange.com/a/34928/77699
+\centering
+\begin{tikzpicture}
+  \node (img1) at (0, 0){
+  \includegraphics[keepaspectratio, height=0.95\paperheight]{figure/brookings-1.pdf}};
+  \node (img2) at (3, 3) {\includegraphics[height=3cm]{../kanaskie.jpg}};
+\end{tikzpicture}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+% These chunks lie outside of the frame because they can.
+<<2001, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/2, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+plotlist[["2001"]]
+@
+
+<<2005, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/2, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+plotlist[["2005"]]
+@
+
+\setbeamertemplate{headline}{}
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+
+	\begin{columns}[allowpagebreak,T]
+		\begin{column}{0.5\paperwidth}
+			\centering
+			\includegraphics[keepaspectratio,width=0.48\paperwidth]{figure/2001-1.pdf}
+		\end{column}
+		\begin{column}{0.5\paperwidth}
+			\centering
+			\includegraphics[keepaspectratio,width=0.48\paperwidth]{figure/2005-1.pdf}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+<<2011, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/2, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+plotlist[["2011"]]
+@
+
+<<2014, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/2, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+plotlist[["2014"]]
+@
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+
+	\begin{columns}[allowpagebreak,T]
+		\begin{column}{0.5\paperwidth}
+			\centering
+			\includegraphics[keepaspectratio,width=0.48\paperwidth]{figure/2011-1.pdf}
+		\end{column}
+		\begin{column}{0.5\paperwidth}
+			\centering
+			\only<2>{
+				\includegraphics[keepaspectratio,width=0.48\paperwidth]{figure/2014-1.pdf}
+			}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+\setbeamerfont{framesource}{size=\tiny}
+
+\section{Research Questions}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+\begin{columns}[allowpagebreak,T]
+	\begin{column}{0.5\textwidth}
+		\begin{center}
+			\Large{\bf Curry County epidemic}
+		\end{center}
+		\begin{itemize}
+			\item 2001 -- present
+			\item Aerial survey detection
+			\item \textbf{Aggressive Management} {\mycitep{hansen2008epidemiology}}
+			\item \textbf{NA1} clonal lineage
+		\end{itemize}
+		\begin{center}
+			\color{mygreen}
+			\only<2->{\Large{\bf Questions}}
+		\end{center}
+		\begin{enumerate}[<+->]
+			\uncover<3->{\item New lineages introduced?}
+			\uncover<4->{\item Multiple introductions?}
+			\uncover<5->{\item Nursery = source?}
+		\end{enumerate}
+	\end{column}
+	\begin{column}{0.5\textwidth}\centering
+		\includegraphics[height=0.75\paperheight,keepaspectratio]{../groundcrew.png}
+		\source{Photo: ODF}{gray}
+	\end{column}
+\end{columns}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+\setbeamerfont{framesource}{size=\footnotesize}
+\setbeamertemplate{background}
+{\includegraphics[width=\paperwidth,height=\paperheight]{../OR_epidemic.png}}
+\source{Mike McWilliams, ODF}{white}
+
+\section{Methods and Results}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}
+	\begin{center}
+	\begin{shaded}
+  \Large{\bf \sc Methods and Results}
+  \end{shaded}
+
+  \end{center}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+\setbeamertemplate{background}[default]
+<<dataplot, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/2, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+labeled_plot +
+	add_points(TREES, size = 5, color = "chocolate", alpha = 0.4) +
+	geom_point(aes(x = LON, y = LAT), color = "white", size = 5, alpha = 0.5, data = pop_data)
+@
+
+\subsection*{Methods}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+
+	\begin{columns}[allowpagebreak,c]
+		\begin{column}{0.5\paperwidth}
+			\centering
+	        \begin{tikzpicture}
+	        	% This is a complicated little maneuver. Here, I'm showing an
+	        	% image and then drawing a red arrow pointing to a specific
+	        	% point. The coordinates in the parens represent the y and the x
+	        	% positions, respectively. The first set represents the arrow
+	        	% head and the second represents the tail The fact that there is
+	        	% a little picture of an arrow indicates that it will be so.
+	        	%
+	        	% http://cremeronline.com/LaTeX/minimaltikz.pdf
+	            \node at (0,0) {\includegraphics[keepaspectratio,width=0.48\paperwidth]{figure/dataplot-1.pdf}};
+	            \draw<6>[<-, red, line width=12] (-2.1, 2.35) -- (0, 2.35);
+        	\end{tikzpicture}
+
+		\end{column}
+		\begin{column}{0.5\paperwidth}
+			\centering
+			\LARGE{\bf Data\\}
+			\begin{itemize}
+				\item<2-> 512 forest samples
+				\begin{itemize}
+					\bf
+					\item<2-> 70 MLG
+				\end{itemize}
+				\item<3-> 5 SSR loci
+				\item<4-> 216 nursery samples \mycitep{goss2009population}
+				\begin{itemize}
+					\bf
+					\item<4-> 40 MLG
+					\item<4-> 12 shared w/ forest
+				\end{itemize}
+				\item<5-> Missing years (2005--2010) \only<5->{\foocite{peterson2015temporal}}
+				\item<6-> 2011 Anomaly
+			\end{itemize}
+		\end{column}
+	\end{columns}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+	\frametitle{Methods}
+	\begin{itemize}
+		\Large
+		\item<1-> \textbf{New Lineage Detection}
+		\begin{itemize}
+			\Large
+			\item<1-> 14 diagnostic microsatellites
+		\end{itemize}
+		\item<2-> \textbf{Multiple Introductions \& Nursery Contribution}
+		\begin{itemize}
+			\Large
+			\item<3-> Discriminant Analysis of Principal Components (DAPC)\\ \mycitep{jombart2010discriminant}
+			\item<4-> Bootstrap Analysis
+			\begin{itemize}
+				\large
+				\item<4-> Nei's distance \mycitep{nei1973analysis}
+			\end{itemize}
+			\item<5-> Minimum Spanning Networks (MSNs)
+			\begin{itemize}
+				\large
+				\item<5-> Bruvo's distance \mycitep{bruvo2004simple}
+			\end{itemize}
+		\end{itemize}
+	\end{itemize}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+\subsection*{Results}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+	\frametitle{DAPC of forest populations}
+	\centering
+	\includegraphics[keepaspectratio, width=0.85\paperwidth]{../DAPC.png}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+	\frametitle{MSN of forest populations}
+	\centering
+    \begin{tikzpicture}
+	    \node[anchor=north east] at (0, 0) {\includegraphics[keepaspectratio, width=0.73\paperwidth]{../msn_forest.png}};
+	    \draw<2> [red, ultra thick] (-2.6, -1.05) circle [radius=1];
+	\end{tikzpicture}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[T]
+
+	\begin{center}
+		\Huge \bf \sc
+		What Happens When
+		\vspace{0.3in}
+		We Add Nursery Data?
+	\end{center}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+	\frametitle{Nei's genetic distance}
+	\centering
+	\includegraphics[keepaspectratio, height=0.9\paperheight]{../neitree.png}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+	\frametitle{DAPC of forest \& nursery populations}
+	\centering
+	\includegraphics[keepaspectratio, width=0.85\paperwidth]{../DAPC_nursery.png}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[allowpagebreak,T]
+	\frametitle{MSN of forest \& nursery populations}
+	\centering
+    \begin{tikzpicture}
+	    \node[anchor=north west] at (0,0) {\includegraphics[keepaspectratio, width=0.75\paperwidth]{../msn_both.png}};
+	    \draw<2> [red, ultra thick] (4, -1) circle [radius=0.75];
+	\end{tikzpicture}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+<<PrMS39, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67/1.5, fig.height = 5.51, warning = FALSE, message = FALSE>>=
+labeled_plot +
+	geom_point(aes(x = LON, y = LAT, color = PrMS39), size = 5, alpha = 0.5) +
+	scale_color_brewer(type = "qual", palette = "Set1")
+@
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}
+
+	\centering
+	\begin{tikzpicture}
+		\node (img1) at (0, 0){
+			\centering
+			\includegraphics[keepaspectratio, height=\paperheight]{figure/PrMS39-1.pdf}
+		};
+		\node<2>(img2) at (0, -1) {
+			\centering
+			\includegraphics[width=0.95\paperwidth]{../PrMS39freq.png}
+		};
+	\end{tikzpicture}
+
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+\setbeamertemplate{background}
+{\includegraphics[width=\paperwidth,height=\paperheight]{../OR_epidemic.png}}
+\source{Mike McWilliams, ODF}{white}
+
+\section{Conclusions}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}
+	\begin{center}
+		\begin{shaded}
+			\Large{\bf \sc Conclusions}
+		\end{shaded}
+	\end{center}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+\setbeamertemplate{background}[default]
+
+
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[T]
+	\frametitle{What did we find?}
+	\Large
+	\begin{itemize}
+		\item<1-> No new lineages
+		\item<2-> Evidence for at least 2 introductions
+		\begin{itemize}
+			\large
+			\item<2-> First in Joe Hall Creek
+			\item<2-> Second in Hunter Creek
+		\end{itemize}
+		\item<3-> These are closely related to nursery genotypes
+	\end{itemize}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+\section*{Acknowledgments}
+%''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''\
+%------------------------------------------------------------------------------|
+\begin{frame}[T]
+\frametitle{Acknowledgments}
+	\begin{columns}[T]
+
+		\begin{column}{0.5\paperwidth}
+			\begin{itemize}
+				\item \textbf{Mike McWilliams} -- Aerial Surveys
+				\item \textbf{Alan M. Kanaskie} -- GIS work, field surveys, data collection
+				\item \textbf{Brookings ground crew} -- data collection, geotagging
+				\item \textbf{Hansen Lab} -- Culturing and identification
+				\item \textbf{Jen Britt} -- Early genotyping
+				\item \textbf{Meredith M. Larsen} -- Genotyping and data harmonization between labs
+				\item \textbf{Erica M. Goss} -- Nursery genotypes
+			\end{itemize}
+		\end{column}
+
+		\begin{column}{0.5\paperwidth}
+			\begin{itemize}
+				\item USDA-ARS grant 5358-22000-039-00D
+				\item USDA-APHIS
+				\item USDA-ARS Floriculture Nursery Initiative
+				\item ODA/OAN
+				\item USDA Forest Service Health Monitoring Program
+				\item APS Pacific Division Student Travel Award
+			\end{itemize}
+		\end{column}
+
+	\end{columns}
+\end{frame}
+%------------------------------------------------------------------------------|
+%,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,/
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%------------------------------------------------------------------------------|
+\begin{frame}
+	\begin{center}
+	\frametitle{Clonal Lineages}
+	\includegraphics[keepaspectratio, width=\textwidth]{../lineages.jpeg}
+	\newline
+	\mycitep{grunwald2011evolution}
+	\end{center}
+\end{frame}
+%------------------------------------------------------------------------------|
+
+<<allplots, cache = TRUE, fig.show = "hide", echo = FALSE, fig.width = 7.67*2, fig.height = 5.51*2, warning = FALSE, message = FALSE>>=
+do.call("plot_grid", c(plotlist))
+@
+
+\setbeamertemplate{background}
+{\includegraphics[width=\paperwidth,height=\paperheight]{figure/allplots-1.pdf}}
+
+%------------------------------------------------------------------------------|
+\begin{frame}[t, allowpagebreak]
+	% \centering
+	% \includegraphics[keepaspectratio,height=\paperheight]{figure/allplots-1.pdf}
+\end{frame}
+%------------------------------------------------------------------------------|
+
+\setbeamertemplate{background}[default]
+
+%------------------------------------------------------------------------------|
+\begin{frame}[t]
+	\frametitle{References}
+
+	\printbibliography
+\end{frame}
+%------------------------------------------------------------------------------|
+
+
+\end{document}

@@ -1,0 +1,13 @@
+\boolfalse {citerequest}\boolfalse {citetracker}\boolfalse {pagetracker}\boolfalse {backtracker}\relax 
+\defcounter {refsection}{0}\relax 
+\beamer@endinputifotherversion {3.20pt}
+\defcounter {refsection}{0}\relax 
+\beamer@sectionintoc {1}{What is Sudden Oak Death?}{2}{0}{1}
+\defcounter {refsection}{0}\relax 
+\beamer@sectionintoc {2}{Curry County Epidemic 2001 -- Present}{4}{0}{2}
+\defcounter {refsection}{0}\relax 
+\beamer@sectionintoc {3}{Research Questions}{10}{0}{3}
+\defcounter {refsection}{0}\relax 
+\beamer@sectionintoc {4}{Methods and Results}{15}{0}{4}
+\defcounter {refsection}{0}\relax 
+\beamer@sectionintoc {5}{Conclusions}{37}{0}{5}
