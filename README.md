@@ -1,5 +1,7 @@
 # Evidence for at least two introductions of the sudden oak death pathogen into Oregon forests
 
+[**PDF of presentation**](https://github.com/zkamvar/Presentation-APS2015/blob/master/beamer_presi/Kamvar_2015-08-02_APS.pdf)
+
 ## About
 
 This repository contains code for my presentation on August 2nd, 2015 at the 
